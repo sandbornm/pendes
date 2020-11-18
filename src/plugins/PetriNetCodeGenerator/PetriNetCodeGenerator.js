@@ -12,7 +12,6 @@ define([
     'plugin/PluginConfig',
     'text!./metadata.json',
     'plugin/PluginBase',
-    'plugin/PluginResult',
     'module'
 ], function (
     Q,
