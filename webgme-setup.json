@@ -1,0 +1,29 @@
+{
+  "components": {
+    "plugins": {
+      "PetriNetCodeGenerator": {
+        "src": "src/plugins/PetriNetCodeGenerator",
+        "test": "test/plugins/PetriNetCodeGenerator"
+      }
+    },
+    "visualizers": {
+      "PetriNetVisualizer": {
+        "src": "panels/PetriNetVisualizer/PetriNetVisualizerPanel",
+        "title": "PetriNetVisualizer",
+        "panel": "src/visualizers/panels/PetriNetVisualizer",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/PetriNetVisualizer"
+      }
+    },
+    "seeds": {
+      "PetriNet": {
+        "src": "src/seeds/PetriNet"
+      }
+    }
+  },
+  "dependencies": {
+    "plugins": {},
+    "visualizers": {},
+    "seeds": {}
+  }
+}
