@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "jointjs": "^3.2.0",
+    "lodash": "^4.17.20",
     "webgme-bindings": "^1.2.1"
   }
 }

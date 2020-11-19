@@ -111,16 +111,20 @@ class PetriNetCodeGenerator(PluginBase):
         def classifyPetriNet():
             if isWorkflowNet():
                 # TODO make plugin message/notification for each of the categories
-                logger.info("Petri net is a Workflow net")
+               # logger.info("Petri net is a Workflow net")
+                self.send_notification("Petri net is a Workflow net")
             elif isMarkedGraph():
-                logger.info("Petri net is a Marked graph")
+               # logger.info("Petri net is a Marked graph")
+                self.send_notification("Petri net is a Marked graph")
             elif isStateMachine():
-                logger.info("Petri net is a State machine")
+               # logger.info("Petri net is a State machine")
+                self.send_notification("Petri net is a State machine")
             elif isFreeChoicePetriNet():
-                logger.info("Petri net is a Free-choice petri net")
+               # logger.info("Petri net is a Free-choice petri net")
+                self.send_notification("Petri net is a Free-choice petri net")
             else:
-                logger.info("Petri net is not valid")
-
+               # logger.info("Petri net is not valid")
+                self.send_notification("Petri net is not valid")
         # Free choice petrinet check - each transition has a unique set of inplaces
         # get all transition pairs (t1, t2), t1 != t2
         def isFreeChoicePetriNet():
@@ -219,7 +223,7 @@ class PetriNetCodeGenerator(PluginBase):
             # can reach end from all o's
             return True
 
-        core.set_attribute(active_node, 'name', 'examplename')
+        #core.set_attribute(active_node, 'name', 'examplename')
         logger.info("classifying petri net...")
         classifyPetriNet()
 

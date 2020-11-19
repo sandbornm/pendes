@@ -22,67 +22,79 @@ define([
         this._client = options.client;
 
         // Initialize core collections and variables
-        this._widget = options.widget;
+        //this._widget = options.widget;
 
         this._currentNodeId = null;
         this._currentNodeParentId = undefined;
 
-        this._initWidgetEventHandlers();
+       // this._initWidgetEventHandlers();
 
         this._logger.debug('ctor finished');
     }
 
-    PetriNetVisualizerControl.prototype._initWidgetEventHandlers = function () {
-        this._widget.onNodeClick = function (id) {
-            // Change the current active object
-            WebGMEGlobal.State.registerActiveObject(id);
-        };
-    };
+    //  PetriNetVisualizerControl.prototype._initWidgetEventHandlers = function () {
+    //     this._widget.onNodeClick = function (id) {
+    //         // Change the current active object
+    //         WebGMEGlobal.State.registerActiveObject(id);
+    //     };
+    // };
 
     /* * * * * * * * Visualizer content update callbacks * * * * * * * */
     // One major concept here is with managing the territory. The territory
     // defines the parts of the project that the visualizer is interested in
     // (this allows the browser to then only load those relevant parts).
-    PetriNetVisualizerControl.prototype.selectedObjectChanged = function (nodeId) {
-        var desc = this._getObjectDescriptor(nodeId),
-            self = this;
+    // PetriNetVisualizerControl.prototype.selectedObjectChanged = function (nodeId) {
 
-        self._logger.debug('activeObject nodeId \'' + nodeId + '\'');
+    //     //const node = this._client.getNode(nodeId);
+    //     //const self = this;
+    //     var desc = this._getObjectDescriptor(nodeId),
+    //     self = this;
 
-        // Remove current territory patterns
-        if (self._currentNodeId) {
-            self._client.removeUI(self._territoryId);
-        }
+    //     self._logger.debug('activeObject nodeId \'' + nodeId + '\'');
 
-        self._currentNodeId = nodeId;
-        self._currentNodeParentId = undefined;
+    //     // Remove current territory patterns
+    //     if (self._currentNodeId) {
+    //         self._client.removeUI(self._territoryId);
+    //     }
 
-        if (typeof self._currentNodeId === 'string') {
-            // Put new node's info into territory rules
-            self._selfPatterns = {};
-            self._selfPatterns[nodeId] = {children: 0};  // Territory "rule"
+    //     self._currentNodeId = nodeId;
+    //     self._currentNodeParentId = undefined;
 
-            self._widget.setTitle(desc.name.toUpperCase());
+    //     if (typeof self._currentNodeId === 'string') {
+    //         // Put new node's info into territory rules
+    //         self._selfPatterns = {};
+    //         self._selfPatterns[nodeId] = {children: 0};  // Territory "rule"
 
-            if (typeof desc.parentId === 'string') {
-                self.$btnModelHierarchyUp.show();
-            } else {
-                self.$btnModelHierarchyUp.hide();
-            }
+    //        // if (node) {
+    //        //      self._widget.setTitle(node.getAttribute('name'));
+    //        // } else {
+    //        //      self._widget.setTitle("no petrinet element!");
+    //        // }
+    //         self._widget.setTitle(desc.name.toUpperCase());
 
-            self._currentNodeParentId = desc.parentId;
 
-            self._territoryId = self._client.addUI(self, function (events) {
-                self._eventCallback(events);
-            });
+    //         // maybe remove from here
+    //         if (typeof desc.parentId === 'string') {
+    //             self.$btnModelHierarchyUp.show();
+    //         } else {
+    //             self.$btnModelHierarchyUp.hide();
+    //         }
 
-            // Update the territory
-            self._client.updateTerritory(self._territoryId, self._selfPatterns);
+    //         self._currentNodeParentId = desc.parentId;
+    //         // to here 
 
-            self._selfPatterns[nodeId] = {children: 1};
-            self._client.updateTerritory(self._territoryId, self._selfPatterns);
-        }
-    };
+
+    //         self._territoryId = self._client.addUI(self, function (events) {
+    //             self._eventCallback(events);
+    //         });
+
+    //         // Update the territory
+    //         self._client.updateTerritory(self._territoryId, self._selfPatterns);
+
+    //         self._selfPatterns[nodeId] = {children: 1};
+    //         self._client.updateTerritory(self._territoryId, self._selfPatterns);
+    //     }
+    // };
 
     // This next function retrieves the relevant node information for the widget
     PetriNetVisualizerControl.prototype._getObjectDescriptor = function (nodeId) {
@@ -129,27 +141,27 @@ define([
         this._logger.debug('_eventCallback \'' + events.length + '\' items - DONE');
     };
 
-    PetriNetVisualizerControl.prototype._onLoad = function (gmeId) {
-        var description = this._getObjectDescriptor(gmeId);
-        this._widget.addNode(description);
-    };
+    // PetriNetVisualizerControl.prototype._onLoad = function (gmeId) {
+    //     var description = this._getObjectDescriptor(gmeId);
+    //     this._widget.addNode(description);
+    // };
 
-    PetriNetVisualizerControl.prototype._onUpdate = function (gmeId) {
-        var description = this._getObjectDescriptor(gmeId);
-        this._widget.updateNode(description);
-    };
+    // PetriNetVisualizerControl.prototype._onUpdate = function (gmeId) {
+    //     var description = this._getObjectDescriptor(gmeId);
+    //     this._widget.updateNode(description);
+    // };
 
-    PetriNetVisualizerControl.prototype._onUnload = function (gmeId) {
-        this._widget.removeNode(gmeId);
-    };
+    // PetriNetVisualizerControl.prototype._onUnload = function (gmeId) {
+    //     this._widget.removeNode(gmeId);
+    // };
 
-    PetriNetVisualizerControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
-        if (this._currentNodeId === activeObjectId) {
-            // The same node selected as before - do not trigger
-        } else {
-            this.selectedObjectChanged(activeObjectId);
-        }
-    };
+    // PetriNetVisualizerControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
+    //     if (this._currentNodeId === activeObjectId) {
+    //         // The same node selected as before - do not trigger
+    //     } else {
+    //         this.selectedObjectChanged(activeObjectId);
+    //     }
+    // };
 
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     PetriNetVisualizerControl.prototype.destroy = function () {
@@ -228,6 +240,36 @@ define([
         });
         this._toolbarItems.push(this.$btnModelHierarchyUp);
         this.$btnModelHierarchyUp.hide();
+
+        /***** Activate Interpreter *****/
+        this.$btnExecuteInterpreter = toolBar.addButton({
+            // todo how to do the execution in this place
+            title: 'Execute interpreter',
+            icon: 'glyphicon glyphicon-play',
+            clickFn: function (/*data*/) {
+               var context = self._client.getCurrentPluginContext("PetriNetCodeGenerator")
+               // run the plugin - doesn't need a callback
+               var emptyCallback = function () {};
+               self._client.runServerPlugin("PetriNetCodeGenerator", context, emptyCallback)
+            }
+        });
+        this._toolbarItems.push(this.$btnExecuteInterpreter);
+        this.$btnExecuteInterpreter.hide();
+
+        /****** Reset net to original state ****/
+        // this.$btnResetVisualizer = toolBar.addButton({
+        //     // todo how to do the execution in this place
+        //     title: 'Reset visualizer',
+        //     icon: 'glyphicon glyphicon-repeat',
+        //     clickFn: function (data) {
+        //        //fixme needs to reload jointjs visualization
+        //        self._widget._initialize();
+        //     }
+        // });
+        // this._toolbarItems.push(this.$btnResetVisualizer);
+        // this.$btnResetVisualizer.hide();
+
+
 
         /************** Checkbox example *******************/
 

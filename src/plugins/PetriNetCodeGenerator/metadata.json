@@ -10,10 +10,6 @@
   "disableServerSideExecution": false,
   "disableBrowserSideExecution": true,
   "writeAccessRequired": true,
-  "dependencies": [
-    {
-      "id": "PetriNetCodeGenerator",
-      "propagateConfig":true
-    }
-  ]
+  "dependencies": [],
+  "configStructure": []
 }
