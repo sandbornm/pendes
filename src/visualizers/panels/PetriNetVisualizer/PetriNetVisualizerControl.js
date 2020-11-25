@@ -16,98 +16,108 @@ define([
     'use strict';
 
     function PetriNetVisualizerControl(options) {
+        console.log("control constructor");
 
         this._logger = options.logger.fork('Control');
 
         this._client = options.client;
 
         // Initialize core collections and variables
-        //this._widget = options.widget;
+        this._widget = options.widget;
 
-        this._currentNodeId = null;
-        this._currentNodeParentId = undefined;
+       this._currentNodeId = null;
+       this._currentNodeParentId = undefined;
 
-       // this._initWidgetEventHandlers();
+       this._initWidgetEventHandlers();
 
-        this._logger.debug('ctor finished');
+       this._initialLoaded = false;
+
+        //this._logger.debug('ctor finished');
+        console.log("control ctor finished");
     }
 
-    //  PetriNetVisualizerControl.prototype._initWidgetEventHandlers = function () {
-    //     this._widget.onNodeClick = function (id) {
-    //         // Change the current active object
-    //         WebGMEGlobal.State.registerActiveObject(id);
-    //     };
-    // };
+     PetriNetVisualizerControl.prototype._initWidgetEventHandlers = function () {
+        this._widget.onNodeClick = function (id) {
+            // Change the current active object
+            WebGMEGlobal.State.registerActiveObject(id);
+        };
 
-    /* * * * * * * * Visualizer content update callbacks * * * * * * * */
+        
+    };
+
+      /* * * * * * * * Visualizer content update callbacks * * * * * * * */
     // One major concept here is with managing the territory. The territory
     // defines the parts of the project that the visualizer is interested in
     // (this allows the browser to then only load those relevant parts).
-    // PetriNetVisualizerControl.prototype.selectedObjectChanged = function (nodeId) {
+    PetriNetVisualizerControl.prototype.selectedObjectChanged = function (nodeId) {
+        var desc = this._getObjectDescriptor(nodeId),
+        self = this;
+        self._logger.debug('activeObject nodeId \'' + nodeId + '\'');
+        self._initialLoaded = true;
+        // Remove current territory patterns
+        if (self._currentNodeId) {
+            self._client.removeUI(self._territoryId);
+        }
 
-    //     //const node = this._client.getNode(nodeId);
-    //     //const self = this;
-    //     var desc = this._getObjectDescriptor(nodeId),
-    //     self = this;
+        self._currentNodeId = nodeId;
+        self._currentNodeParentId = undefined;
 
-    //     self._logger.debug('activeObject nodeId \'' + nodeId + '\'');
+        if (typeof self._currentNodeId === 'string') {
+            // Put new node's info into territory rules
+            self._selfPatterns = {};
+            self._selfPatterns[nodeId] = {children: 1};  // Territory "rule"
 
-    //     // Remove current territory patterns
-    //     if (self._currentNodeId) {
-    //         self._client.removeUI(self._territoryId);
-    //     }
+           // if (node) {
+           //      self._widget.setTitle(node.getAttribute('name'));
+           // } else {
+           //      self._widget.setTitle("no petrinet element!");
+           // }
+            self._widget.setTitle(desc.name.toUpperCase());
 
-    //     self._currentNodeId = nodeId;
-    //     self._currentNodeParentId = undefined;
+            if (typeof desc.parentId === 'string') {
+                self.$btnModelHierarchyUp.show();
+            } else {
+                self.$btnModelHierarchyUp.hide();
+            }
 
-    //     if (typeof self._currentNodeId === 'string') {
-    //         // Put new node's info into territory rules
-    //         self._selfPatterns = {};
-    //         self._selfPatterns[nodeId] = {children: 0};  // Territory "rule"
+            self._currentNodeParentId = desc.parentId;
 
-    //        // if (node) {
-    //        //      self._widget.setTitle(node.getAttribute('name'));
-    //        // } else {
-    //        //      self._widget.setTitle("no petrinet element!");
-    //        // }
-    //         self._widget.setTitle(desc.name.toUpperCase());
+            self._territoryId = self._client.addUI(self, function (events) {
+                self._eventCallback(events);
+            });
 
+            // Update the territory
+            self._client.updateTerritory(self._territoryId, self._selfPatterns);
 
-    //         // maybe remove from here
-    //         if (typeof desc.parentId === 'string') {
-    //             self.$btnModelHierarchyUp.show();
-    //         } else {
-    //             self.$btnModelHierarchyUp.hide();
-    //         }
-
-    //         self._currentNodeParentId = desc.parentId;
-    //         // to here 
-
-
-    //         self._territoryId = self._client.addUI(self, function (events) {
-    //             self._eventCallback(events);
-    //         });
-
-    //         // Update the territory
-    //         self._client.updateTerritory(self._territoryId, self._selfPatterns);
-
-    //         self._selfPatterns[nodeId] = {children: 1};
-    //         self._client.updateTerritory(self._territoryId, self._selfPatterns);
-    //     }
-    // };
+            // self._selfPatterns[nodeId] = {children: 1};
+            // self._client.updateTerritory(self._territoryId, self._selfPatterns);
+        }
+    };
 
     // This next function retrieves the relevant node information for the widget
     PetriNetVisualizerControl.prototype._getObjectDescriptor = function (nodeId) {
         var node = this._client.getNode(nodeId),
             objDescriptor;
         if (node) {
+            var metaId = node.getBaseTypeId();
+            var metaNode = this._client.getNode(metaId);
+            if (metaNode !== null) {
+                var metaType = metaNode.getAttribute('name'); 
+            } else {
+                var metaType = null;
+            }
             objDescriptor = {
                 id: node.getId(),
                 name: node.getAttribute(nodePropertyNames.Attributes.name),
                 childrenIds: node.getChildrenIds(),
                 parentId: node.getParentId(),
-                isConnection: GMEConcepts.isConnection(nodeId)
+                isConnection: GMEConcepts.isConnection(nodeId),
+                type: metaType 
             };
+            if (objDescriptor.isConnection) {
+                objDescriptor.src = node.getPointerId('src');
+                objDescriptor.dst = node.getPointerId('dst');
+            }
         }
 
         return objDescriptor;
@@ -116,33 +126,34 @@ define([
     /* * * * * * * * Node Event Handling * * * * * * * */
     PetriNetVisualizerControl.prototype._eventCallback = function (events) {
         var i = events ? events.length : 0,
+            pnData = {
+                simUrl: null,
+                descriptors: {}
+            },
             event;
 
-        this._logger.debug('_eventCallback \'' + i + '\' items');
+        console.log('_eventCallback \'' + i + '\' items');
+        console.log('events', events);
 
-        while (i--) {
-            event = events[i];
-            switch (event.etype) {
+            for (i = 0; i < events.length; i+=1){
+                event = events[i];
+                if (event.eid === this._currentNodeId){
 
-            case CONSTANTS.TERRITORY_EVENT_LOAD:
-                this._onLoad(event.eid);
-                break;
-            case CONSTANTS.TERRITORY_EVENT_UPDATE:
-                this._onUpdate(event.eid);
-                break;
-            case CONSTANTS.TERRITORY_EVENT_UNLOAD:
-                this._onUnload(event.eid);
-                break;
-            default:
-                break;
+               } else if (event.eid !== this._currentNodeParentId ) { // ignore the root
+                    pnData.descriptors[event.eid] = this._getObjectDescriptor(event.eid);
+                    console.log("add node");
+                    this._widget.addNode(pnData.descriptors[event.eid]);
+                    console.log("added node");
+                }
             }
-        }
 
-        this._logger.debug('_eventCallback \'' + events.length + '\' items - DONE');
+            this._widget.initNetwork(function () {});
+        console.log('_eventCallback \'' + events.length + '\' items - DONE');
     };
 
     // PetriNetVisualizerControl.prototype._onLoad = function (gmeId) {
     //     var description = this._getObjectDescriptor(gmeId);
+    //     console.log("add node");
     //     this._widget.addNode(description);
     // };
 
@@ -155,13 +166,13 @@ define([
     //     this._widget.removeNode(gmeId);
     // };
 
-    // PetriNetVisualizerControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
-    //     if (this._currentNodeId === activeObjectId) {
-    //         // The same node selected as before - do not trigger
-    //     } else {
-    //         this.selectedObjectChanged(activeObjectId);
-    //     }
-    // };
+    PetriNetVisualizerControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
+        if (this._currentNodeId === activeObjectId) {
+            // The same node selected as before - do not trigger
+        } else {
+            this.selectedObjectChanged(activeObjectId);
+        }
+    };
 
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     PetriNetVisualizerControl.prototype.destroy = function () {
@@ -243,12 +254,10 @@ define([
 
         /***** Activate Interpreter *****/
         this.$btnExecuteInterpreter = toolBar.addButton({
-            // todo how to do the execution in this place
             title: 'Execute interpreter',
             icon: 'glyphicon glyphicon-play',
             clickFn: function (/*data*/) {
                var context = self._client.getCurrentPluginContext("PetriNetCodeGenerator")
-               // run the plugin - doesn't need a callback
                var emptyCallback = function () {};
                self._client.runServerPlugin("PetriNetCodeGenerator", context, emptyCallback)
             }
@@ -257,19 +266,17 @@ define([
         this.$btnExecuteInterpreter.hide();
 
         /****** Reset net to original state ****/
-        // this.$btnResetVisualizer = toolBar.addButton({
-        //     // todo how to do the execution in this place
-        //     title: 'Reset visualizer',
-        //     icon: 'glyphicon glyphicon-repeat',
-        //     clickFn: function (data) {
-        //        //fixme needs to reload jointjs visualization
-        //        self._widget._initialize();
-        //     }
-        // });
-        // this._toolbarItems.push(this.$btnResetVisualizer);
-        // this.$btnResetVisualizer.hide();
-
-
+        this.$btnResetVisualizer = toolBar.addButton({
+            title: 'Reset visualizer',
+            icon: 'glyphicon glyphicon-repeat',
+            clickFn: function () {
+                // reset simulation
+                self._widget._initialize();
+                //self._widget.initNetwork();
+            }
+        });
+        this._toolbarItems.push(this.$btnResetVisualizer);
+        this.$btnResetVisualizer.hide();
 
         /************** Checkbox example *******************/
 

@@ -22,6 +22,8 @@
     "webgme": "git://github.com/webgme/webgme.git#blob_issue"
   },
   "dependencies": {
+    "dagre": "^0.8.5",
+    "graphlib": "^2.1.8",
     "jointjs": "^3.2.0",
     "lodash": "^4.17.20",
     "webgme-bindings": "^1.2.1"
