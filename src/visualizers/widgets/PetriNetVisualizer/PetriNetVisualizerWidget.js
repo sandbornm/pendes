@@ -12,12 +12,11 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
 
         // default widget 
         function PetriNetVisualizerWidget(logger, container) {
-            console.log("widget constructor");
             this._logger = logger.fork('Widget');
             this._el = container;
             this.nodes = [];
             this._initialize();
-            console.log("widget ctor finished");
+            this._logger.debug("widget ctor finished");
         }
 
         PetriNetVisualizerWidget.prototype._initialize = function () {
@@ -76,9 +75,7 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
             }
 
             function isEnabledTransition(transition) {
-                console.log("in is enabled transition");
                 var inplaces = getPlaces(transition, 1);
-                console.log("inpls", inplaces);
                 if (inplaces.length === 0){
                     return false;
                 }
@@ -102,6 +99,17 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                  callback(enabled);
             }
 
+            function getUnenabledTransitions(callback) {
+                var elts = graph.getElements();
+                var unenabled = [];
+                for (var i = 0; i < elts.length; i++){
+                    if (isTransition(elts[i]) && !isEnabledTransition(elts[i])) {
+                        unenabled.push(elts[i]);
+                    }
+                }
+                 callback(unenabled);
+            }
+
             function fireEnabledTransition(transition, callback) {
                 var inbound = graph.getConnectedLinks(transition, { inbound: true });
                 var outbound = graph.getConnectedLinks(transition, { outbound: true });
@@ -118,12 +126,14 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                         
                     var links = inbound.filter(function(l) {
                         return l.getSourceElement() === s;
-                    });
+                    }); 
 
+                    // update count before sending token to prevent spamming
                     links.forEach(function(l) {
-                        l.findView(paper).sendToken(jointjs.V('circle', {r: 5, fill: '#feb662'}), 500, function() {
-                            var inTokens = s.attributes.attrs.label.text;
-                            s.attr('label/text', inTokens - 1);
+                        var inTokens = s.attributes.attrs.label.text;
+                        s.attr('label/text', inTokens - 1);
+                        l.findView(paper).sendToken(jointjs.V('circle', {r: 5, fill: '#feb662'}), 400, function() {
+                            
                         });
                     });
                 });
@@ -135,7 +145,7 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                     });
 
                     links.forEach(function(l) {
-                        l.findView(paper).sendToken(jointjs.V('circle', {r: 5, fill: '#feb662'}), 500, function() {
+                        l.findView(paper).sendToken(jointjs.V('circle', {r: 5, fill: '#feb662'}), 400, function() {
                             var outTokens = d.attributes.attrs.label.text;
                             d.attr('label/text', outTokens + 1);
                         });
@@ -145,15 +155,20 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                 callback(transition);
             }
 
-            function updateHighlights(element) {
-                console.log("in update highlights");
-                console.log("isenabled", isEnabledTransition(element));
-                var t = paper.findViewByModel(element);
-                    if (!isEnabledTransition(element)){
-                        console.log("transition not enabled");
-                        t.unhighlight();
-                    }
-            }
+            function updateHighlights() {
+                getEnabledTransitions(function(t) {
+                    t.forEach(function(t) {
+                        var v = paper.findViewByModel(t);
+                        v.highlight();
+                    });    
+                });
+                getUnenabledTransitions(function(t) {
+                    t.forEach(function(t) {
+                        var v = paper.findViewByModel(t);
+                        v.unhighlight();
+                    });    
+                });
+            } 
 
             function inDeadlock() {
                 var len = null;
@@ -164,7 +179,7 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
             }
 
             function prompt() {
-                window.alert("click an enabled transition");
+                window.alert("click an enabled transition (highlighted)");
                 getEnabledTransitions(function(t) {
                     t.forEach(function(t) {
                         var v = paper.findViewByModel(t);
@@ -173,27 +188,29 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                 });
             }
 
+                // track of fireable transitions; don't let user interact with deadlocked petrinet
+                paper.on('blank:mouseover', function() {
+                    updateHighlights();
+                    if (inDeadlock()) {
+                        alert("Deadlock! Reset the simulator in the toolbar \n  <------");
+                    }
+                });
+
                 paper.on('element:pointerdown', function(elementView) {
                     var element = elementView.model;
                     if (!inDeadlock()) { 
                         if (element.attributes.type === "pn.Transition") {
                             if (isEnabledTransition(element)){
-                                fireEnabledTransition(element, function(t) {
-                                    updateHighlights(t);
-                                });
+                                fireEnabledTransition(element, updateHighlights);
                             } else {
                                 prompt();
-                                var t = paper.findViewByModel(element);
-                                t.unhighlight();
                             }
                         } else {
                             prompt();
                         }
-                    } else {
-                        alert("Deadlock! Reset the simulator in the toolbar");
                     }
                 });
-
+            
             this._place = jointjs.dia.Element.define('network.Place', {
             attrs: {
                 circle: {
@@ -231,7 +248,7 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                     selector: 'label'
                 }]
         });
-            console.log("widget initialize done");
+           this._logger.debug("widget initialize done");
         };
 
         function makeTransition(text, x, y) {
@@ -259,7 +276,6 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
         }
 
         function addLink(src, dst) {
-            console.log("in addLink");
             console.log("src", src);
             console.log("dst", dst);
             var pn = jointjs.shapes.pn;
@@ -292,7 +308,6 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
         };
 
         PetriNetVisualizerWidget.prototype.addNode = function (desc) {
-            console.log("in add node");
             if (desc) {
                console.log("node id: " + desc.id + " node type: " + desc.type + " node name: " + desc.name + " # children: " + desc.childrenIds.length + " parent: " + desc.parentId + " is arc: " + desc.isConnection);
                this.nodes.push(desc);
@@ -300,8 +315,7 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
         };
 
         PetriNetVisualizerWidget.prototype.initNetwork = function() {
-            console.log("number of nodes ", this.nodes.length);
-            console.log("making network...");
+            this._logger.debug("making network...");
 
             // id: nodepath
             // name: node name
@@ -309,7 +323,6 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
             // parentId: parent path
             // isConnection: true or false is arc
             // type: metaType - place, transition, or arc
-            // for arcs
             // src: src path of arc
             // dst: dst path of arc
 
@@ -336,16 +349,6 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                         xp = 150;
                     }
 
-                    // if (yp < 100) {
-                    //     yp += 75;
-                    // } else {
-                    //     // next column
-                    //     xp -= 100;
-                    //     yp = 150;
-                    // }
-
-                    //.attributes.attrs.label.text -- get the tokens of a place 
-                        
                     var place = new this._place({
                             position: {x: xp, y: yp},
                             attrs: {
@@ -372,38 +375,17 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                         xt = 150
                     }
 
-                    // else {
-                    //     // next row
-                    //     yt += 50;
-                    //     xt = 120;
-                    // }
-
-                    // if (yt < 800) {
-                    //     yt += 100;
-                    // } else {
-                    //     // next column
-                    //     xt += 100;
-                    //     yt = 50;
-                    // }
-
                     transitions.push(makeTransition(node.name, xt, yt));
                     var transitionName = node.name;
                     nameToId[transitionName] = node.id;
                 }
             } // done adding places and transitions
 
-            //.attributes.attrs.label.text --- tokens 
-            //.attributes.attrs.text.text --- the name of the place
-
-            console.log("nameToId", nameToId);
-            console.log("places ", places);
-            console.log("transitions ", transitions);
             //now add arcs
             for (var i = 0; i < this.nodes.length; i+=1) {
                 var node = this.nodes[i];
                 // one kind of arc
                 if (node.type === "P2T") {
-                    console.log("P2T");
                     // resolve src and dst of the arc 
                     // use src and dst to look up
                     // 1. find src in places
@@ -411,13 +393,9 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                     for (var j = 0; j < places.length; j+=1) {
                         var place = places[j];
                         var placeName = place.attributes.attrs.text.text; // name of place
-                        console.log("nodesrc", node.src);
-                        console.log("place name ", placeName);
-                        console.log("nameToId.placeName", nameToId[placeName]);
                         if (node.src === nameToId[placeName]) {
                             // this means the place with the src path of the current node is found
                             var srcP = place;
-                            console.log("src place found");
                             break; // done checking
                         }
                     }
@@ -427,26 +405,25 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                         var transitionName = transition.attributes.attrs[".label"].text;
                         if(node.dst === nameToId[transitionName]) {
                             var dstT = transition;
-                            console.log("dst transition found");
                             break; // done checking
                         }
                     }
 
                     // add the P2T arc
-                    console.log("p2t src ", srcP);
-                    console.log("p2t dst ", dstT);
-                    arcs.push(addLink(srcP, dstT));
+                    if (srcP !== null && dstT !== null) {
+                        arcs.push(addLink(srcP, dstT));
+                    } else {
+                        console.log("one (or both) P2T arc endpoint(s) is(are) null!")
+                    }
 
                 // other kind of arc
                 } else if (node.type === "T2P") {
-                    console.log("T2P");
                     var srcT = null;
                     for (var l = 0; l < transitions.length; l+=1) {
                         var transition2 = transitions[l];
                         var transitionName2 = transition2.attributes.attrs[".label"].text; // name of transition
                         if(node.src === nameToId[transitionName2]) {
                             var srcT = transition2;
-                            console.log("src transition found");
                             break;
                         }
                     }
@@ -458,14 +435,16 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                         if (node.dst === nameToId[placeName2]) {
                             // this means the place with the src path of the current node is found
                             var dstP = place2;
-                            console.log("dst place found");
                             break;
                         }
                     }
+
                     // add the T2P arc
-                    console.log("t2p src ", srcT);
-                    console.log("t2p dst ", dstP);
-                    arcs.push(addLink(srcT, dstP));
+                    if (srcT !== null && dstP !== null) {
+                        arcs.push(addLink(srcT, dstP));
+                    } else {
+                        console.log("one (or both) T2P arc endpoint(s) is(are) null!")
+                    }
                 }
             }
 
@@ -477,25 +456,11 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                 this._graph.addCell(transitions[o]);
             }
             for (var p = 0; p < arcs.length; p+=1) {
+                console.log("adding arc");
                 this._graph.addCell(arcs[p]);
             }
 
         };
-
-         /* * * * * * * * Visualizer event handlers * * * * * * * */
-
-        // PetriNetVisualizerWidget.prototype.onNodeClick = function (/*id*/) {
-        //     // This currently changes the active node to the given id and
-        //     // this is overridden in the controller.
-        // };
-
-        // PetriNetVisualizerWidget.prototype.onBackgroundDblClick = function () {
-        //     this._el.append('<div>Background : double-clicked!!</div>');
-        // };       
-
-
-
-
 
         /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
         PetriNetVisualizerWidget.prototype.destroy = function () {

@@ -67,18 +67,7 @@ define([
             self._selfPatterns = {};
             self._selfPatterns[nodeId] = {children: 1};  // Territory "rule"
 
-           // if (node) {
-           //      self._widget.setTitle(node.getAttribute('name'));
-           // } else {
-           //      self._widget.setTitle("no petrinet element!");
-           // }
             self._widget.setTitle(desc.name.toUpperCase());
-
-            if (typeof desc.parentId === 'string') {
-                self.$btnModelHierarchyUp.show();
-            } else {
-                self.$btnModelHierarchyUp.hide();
-            }
 
             self._currentNodeParentId = desc.parentId;
 
@@ -88,9 +77,6 @@ define([
 
             // Update the territory
             self._client.updateTerritory(self._territoryId, self._selfPatterns);
-
-            // self._selfPatterns[nodeId] = {children: 1};
-            // self._client.updateTerritory(self._territoryId, self._selfPatterns);
         }
     };
 
@@ -147,24 +133,9 @@ define([
                 }
             }
 
-            this._widget.initNetwork(function () {});
+            this._widget.initNetwork();
         console.log('_eventCallback \'' + events.length + '\' items - DONE');
     };
-
-    // PetriNetVisualizerControl.prototype._onLoad = function (gmeId) {
-    //     var description = this._getObjectDescriptor(gmeId);
-    //     console.log("add node");
-    //     this._widget.addNode(description);
-    // };
-
-    // PetriNetVisualizerControl.prototype._onUpdate = function (gmeId) {
-    //     var description = this._getObjectDescriptor(gmeId);
-    //     this._widget.updateNode(description);
-    // };
-
-    // PetriNetVisualizerControl.prototype._onUnload = function (gmeId) {
-    //     this._widget.removeNode(gmeId);
-    // };
 
     PetriNetVisualizerControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
         if (this._currentNodeId === activeObjectId) {
@@ -241,17 +212,6 @@ define([
 
         this._toolbarItems.push(toolBar.addSeparator());
 
-        /************** Go to hierarchical parent button ****************/
-        this.$btnModelHierarchyUp = toolBar.addButton({
-            title: 'Go to parent',
-            icon: 'glyphicon glyphicon-circle-arrow-up',
-            clickFn: function (/*data*/) {
-                WebGMEGlobal.State.registerActiveObject(self._currentNodeParentId);
-            }
-        });
-        this._toolbarItems.push(this.$btnModelHierarchyUp);
-        this.$btnModelHierarchyUp.hide();
-
         /***** Activate Interpreter *****/
         this.$btnExecuteInterpreter = toolBar.addButton({
             title: 'Execute interpreter',
@@ -277,17 +237,6 @@ define([
         });
         this._toolbarItems.push(this.$btnResetVisualizer);
         this.$btnResetVisualizer.hide();
-
-        /************** Checkbox example *******************/
-
-        this.$cbShowConnection = toolBar.addCheckBox({
-            title: 'toggle checkbox',
-            icon: 'gme icon-gme_diagonal-arrow',
-            checkChangedFn: function (data, checked) {
-                self._logger.debug('Checkbox has been clicked!');
-            }
-        });
-        this._toolbarItems.push(this.$cbShowConnection);
 
         this._toolbarInitialized = true;
     };
