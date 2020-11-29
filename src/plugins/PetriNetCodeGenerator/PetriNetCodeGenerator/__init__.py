@@ -110,20 +110,14 @@ class PetriNetCodeGenerator(PluginBase):
         # children of active node loaded
         def classifyPetriNet():
             if isWorkflowNet():
-                # TODO make plugin message/notification for each of the categories
-               # logger.info("Petri net is a Workflow net")
                 self.send_notification("Petri net is a Workflow net")
             elif isMarkedGraph():
-               # logger.info("Petri net is a Marked graph")
                 self.send_notification("Petri net is a Marked graph")
             elif isStateMachine():
-               # logger.info("Petri net is a State machine")
                 self.send_notification("Petri net is a State machine")
             elif isFreeChoicePetriNet():
-               # logger.info("Petri net is a Free-choice petri net")
                 self.send_notification("Petri net is a Free-choice petri net")
             else:
-               # logger.info("Petri net is not valid")
                 self.send_notification("Petri net is not valid")
         # Free choice petrinet check - each transition has a unique set of inplaces
         # get all transition pairs (t1, t2), t1 != t2
@@ -133,7 +127,7 @@ class PetriNetCodeGenerator(PluginBase):
             pairs = getTransitionPairs(transitions)
             for p in pairs:
                 isEmpty = isPlaceSetIntersectionEmpty("P2T", transitions[p[0]], transitions[p[1]])
-                if not isEmpty: # not empty
+                if not isEmpty:
                     # inplace set is not unique, p[0] != p[1] by default
                     return False 
             # each transition has a unique set of inplaces
@@ -143,24 +137,20 @@ class PetriNetCodeGenerator(PluginBase):
         def isStateMachine():
             transitions = getAllOfMetaType('Transition')
             for t in transitions:
-                # get inplaces and outplaces
                 ip = getSetOf('P2T', t)
                 op = getSetOf('T2P', t)
                 if len(ip) != 1 or len(op) != 1:
                     return False
-            # each transition has exactly 1 inplace and 1 outplace
             return True 
 
         # Marked Graph - every place has exactly one out transition and one in transition
         def isMarkedGraph():
             places = getAllOfMetaType('Place')
             for p in places:
-                # get in transitions and out transitions
                 intr = getSetOf('T2P', p)
                 logger.info("intrans {}".format(intr))
                 outr = getSetOf('P2T', p)
                 logger.info("outtrans {}".format(outr))
-                # every place has exactly one out transition and one in transition
                 if len(intr) != 1 or len(outr) != 1:
                     return False
             return True
@@ -189,7 +179,7 @@ class PetriNetCodeGenerator(PluginBase):
             srcs, snks = getSourcesAndSinks()
             logger.info("srcs {} len {}, snks {} len {}".format(srcs, len(srcs), snks, len(snks)))
             if len(srcs) != 1 or len(snks) != 1:
-                return False # wrong number of sources and sinks
+                return False
             # exactly 1 source and 1 sink - ensure 1 path to get from source to sink
             src = srcs[0]
             snk = snks[0]
@@ -223,9 +213,8 @@ class PetriNetCodeGenerator(PluginBase):
             # can reach end from all o's
             return True
 
-        #core.set_attribute(active_node, 'name', 'examplename')
         logger.info("classifying petri net...")
         classifyPetriNet()
 
-        #commit_info = self.util.save(root_node, self.commit_hash, 'master', 'Python plugin updated the model')
-        #logger.info('committed :{0}'.format(commit_info))
+        commit_info = self.util.save(root_node, self.commit_hash, 'master', 'Python plugin updated the model')
+        logger.info('committed :{0}'.format(commit_info))

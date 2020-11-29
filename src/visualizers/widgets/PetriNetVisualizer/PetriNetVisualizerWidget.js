@@ -327,7 +327,6 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
             // dst: dst path of arc
 
             // build the network add the places and transitions first
-            // need x, y offset for positioning
             var places = [];
             var transitions = [];
             var arcs = [];
@@ -381,10 +380,8 @@ define(['jointjs', 'dagrejs', 'graphlibjs', 'css!./styles/PetriNetVisualizerWidg
                 }
             } // done adding places and transitions
 
-            //now add arcs
             for (var i = 0; i < this.nodes.length; i+=1) {
                 var node = this.nodes[i];
-                // one kind of arc
                 if (node.type === "P2T") {
                     // resolve src and dst of the arc 
                     // use src and dst to look up

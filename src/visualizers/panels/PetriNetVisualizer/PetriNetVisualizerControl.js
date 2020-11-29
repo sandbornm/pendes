@@ -32,8 +32,7 @@ define([
 
        this._initialLoaded = false;
 
-        //this._logger.debug('ctor finished');
-        console.log("control ctor finished");
+        this._logger.debug('ctor finished');
     }
 
      PetriNetVisualizerControl.prototype._initWidgetEventHandlers = function () {
